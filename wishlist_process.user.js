@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Neopets Wishlist Manager4
+// @name         Neopets Wishlist itemdb compat
 // @namespace    http://tampermonkey.net/
 // @version      1.4
 // @description  Manage, parse, and format wishlists from Jellyneo and ItemDB with manual item entry support
-// @author       You
+// @author       laurore
 // @match        *://*.neopets.com/*
 // @match        *://items.jellyneo.net/mywishes/*
 // @match        *://itemdb.com.br/*
@@ -692,7 +692,7 @@
 
     // Format items for display
     function formatItems(items) {
-        return items.map(item => `"${item}"`).join(',\n');
+        return items.map(item => `"${item}"`).join(', ');
     }
 
     // Render the wishlists
