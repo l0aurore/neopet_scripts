@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.4
 // @description  Manage, parse, and format wishlists from Jellyneo and ItemDB with manual item entry support
-// @author       laurore
+// @author       You
 // @match        *://*.neopets.com/*
 // @match        *://items.jellyneo.net/mywishes/*
 // @match        *://itemdb.com.br/*
