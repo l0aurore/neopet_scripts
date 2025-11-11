@@ -4,7 +4,7 @@
 // @version      1.0
 // @description  Add Next / Refresh UI to cycle through .petCare-itemgrid-item and click #petCareUseItem when popup loads (no page refresh). Uses sessionStorage for session state.
 // @match        https://www.neopets.com/home/*
-// @update       githublink
+// @update       https://github.com/l0aurore/neopet_scripts/blob/main/homepage_book_reader
 // @grant        none
 // ==/UserScript==
 
