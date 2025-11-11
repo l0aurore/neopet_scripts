@@ -1,0 +1,230 @@
+// ==UserScript==
+// @name         PetCare Book Reader 
+// @namespace    neopets.petcare
+// @version      1.0
+// @description  Add Next / Refresh UI to cycle through .petCare-itemgrid-item and click #petCareUseItem when popup loads (no page refresh). Uses sessionStorage for session state.
+// @match        https://www.neopets.com/home/*
+// @update       githublink
+// @grant        none
+// ==/UserScript==
+
+(function () {
+    'use strict';
+
+    // ---- Config / keys ----
+    const STORAGE_INDEX = 'petReader_lastIndex_v1';
+    const STORAGE_ITEMS_HASH = 'petReader_itemsHash_v1';
+    const POLL_INTERVAL = 200; // ms to check for Read button
+    const POLL_TIMEOUT = 10000; // ms to give up waiting for Read button
+
+    // ---- UI creation ----
+    function createPanel() {
+        if (document.getElementById('petReaderPanel')) return;
+
+        const panel = document.createElement('div');
+        panel.id = 'petReaderPanel';
+        panel.style.position = 'fixed';
+        panel.style.bottom = '12px';
+        panel.style.right = '12px';
+        panel.style.zIndex = '999999';
+        panel.style.background = 'rgba(0,0,0,0.85)';
+        panel.style.color = 'white';
+        panel.style.padding = '10px';
+        panel.style.borderRadius = '8px';
+        panel.style.fontFamily = 'Arial, sans-serif';
+        panel.style.fontSize = '13px';
+        panel.style.minWidth = '190px';
+        panel.innerHTML = `
+            <div style="font-weight:700;margin-bottom:6px;">PetCare — Book Reader</div>
+            <div style="margin-bottom:6px;">Index: <span id="petReaderIndex">0</span> / <span id="petReaderTotal">0</span></div>
+            <div style="display:flex;gap:6px;justify-content:center;">
+                <button id="petReaderNext">Next</button>
+                <button id="petReaderRefresh">Refresh</button>
+            </div>
+            <div id="petReaderMsg" style="margin-top:6px;color:#ddd;font-size:12px;"></div>
+        `;
+        document.body.appendChild(panel);
+
+        document.getElementById('petReaderNext').addEventListener('click', onNext);
+        document.getElementById('petReaderRefresh').addEventListener('click', onRefresh);
+    }
+
+    // ---- State helpers ----
+    function getLastIndex() {
+        const v = sessionStorage.getItem(STORAGE_INDEX);
+        return v === null ? -1 : parseInt(v, 10);
+    }
+    function setLastIndex(n) {
+        sessionStorage.setItem(STORAGE_INDEX, String(n));
+    }
+    function resetLastIndex() {
+        sessionStorage.removeItem(STORAGE_INDEX);
+    }
+
+    // Generate a simple hash of the items NodeList (length + data-itemname concatenation)
+    function makeItemsHash(items) {
+        try {
+            let s = String(items.length);
+            items.forEach((it) => {
+                if (it.dataset && it.dataset.itemname) s += '|' + it.dataset.itemname;
+                else s += '|' + (it.textContent || '').trim().slice(0, 40);
+            });
+            // quick hash
+            let h = 0;
+            for (let i = 0; i < s.length; i++) h = ((h << 5) - h) + s.charCodeAt(i);
+            return String(h);
+        } catch (e) {
+            return String(items.length);
+        }
+    }
+    function storeItemsHash(h) {
+        sessionStorage.setItem(STORAGE_ITEMS_HASH, h);
+    }
+    function getStoredItemsHash() {
+        return sessionStorage.getItem(STORAGE_ITEMS_HASH);
+    }
+
+    // ---- Core logic ----
+    let items = [];
+    function loadItems() {
+        items = Array.from(document.querySelectorAll('.petCare-itemgrid-item'));
+        const totalEl = document.getElementById('petReaderTotal');
+        if (totalEl) totalEl.textContent = items.length;
+        // update items hash if not present
+        const newHash = makeItemsHash(items);
+        const prevHash = getStoredItemsHash();
+        if (prevHash === null || prevHash !== newHash) {
+            storeItemsHash(newHash);
+        }
+    }
+
+    function updateIndexDisplay() {
+        const idxEl = document.getElementById('petReaderIndex');
+        const totalEl = document.getElementById('petReaderTotal');
+        const msgEl = document.getElementById('petReaderMsg');
+        const lastIndex = getLastIndex();
+        if (idxEl) idxEl.textContent = Math.max(0, lastIndex + 1); // show 1-based
+        if (totalEl) totalEl.textContent = items.length;
+        if (msgEl) {
+            if (items.length === 0) msgEl.textContent = 'No items found on page.';
+            else msgEl.textContent = '';
+        }
+    }
+
+    function showMessage(text, timeoutMs) {
+        const msgEl = document.getElementById('petReaderMsg');
+        if (!msgEl) return;
+        msgEl.textContent = text;
+        if (timeoutMs) {
+            setTimeout(() => {
+                // only clear if unchanged
+                if (msgEl.textContent === text) msgEl.textContent = '';
+            }, timeoutMs);
+        }
+    }
+
+    async function onNext() {
+        // ensure items are current
+        if (!items || items.length === 0) {
+            loadItems();
+            if (items.length === 0) {
+                showMessage('No items found. Make sure the grid is visible.', 5000);
+                return;
+            }
+        }
+
+        let lastIndex = getLastIndex();
+        lastIndex++;
+        if (lastIndex >= items.length) {
+            showMessage('No more items left.', 4000);
+            // keep lastIndex at end
+            setLastIndex(items.length - 1);
+            updateIndexDisplay();
+            return;
+        }
+
+        const nextItem = items[lastIndex];
+        if (!nextItem) {
+            showMessage('Item not found (DOM changed). Try Refresh.', 4000);
+            return;
+        }
+
+        // Save new index immediately so if something reloads, progress isn't lost
+        setLastIndex(lastIndex);
+        updateIndexDisplay();
+
+        // Click the item to open popup/modal
+        try {
+            nextItem.scrollIntoView({behavior: 'smooth', block: 'center'});
+        } catch (e) { /* ignore */ }
+        try {
+            nextItem.click();
+        } catch (e) {
+            console.warn('petReader: failed to click item:', e);
+        }
+
+        // Poll for the Read/Use button in the popup
+        showMessage('Waiting for "Read to Pet" button...', 0);
+        const start = Date.now();
+        const poll = setInterval(() => {
+            const btn = document.querySelector('#petCareUseItem');
+            if (btn) {
+                clearInterval(poll);
+                try {
+                    btn.click();
+                    showMessage('Clicked "Read to Pet" ✔', 2500);
+                } catch (err) {
+                    console.error('petReader: failed to click use button', err);
+                    showMessage('Failed to click use button. See console.', 4000);
+                }
+                updateIndexDisplay();
+                return;
+            }
+            if (Date.now() - start > POLL_TIMEOUT) {
+                clearInterval(poll);
+                showMessage('Timeout waiting for Read button. Try Next again or Refresh.', 5000);
+            }
+        }, POLL_INTERVAL);
+    }
+
+    function onRefresh() {
+        // Clear session-stored index so we start at top again
+        resetLastIndex();
+        // Re-query items from DOM
+        loadItems();
+        updateIndexDisplay();
+        showMessage('Session cleared. Starting at top of grid.', 3000);
+    }
+
+    // If the DOM may later populate the grid (AJAX), watch for changes and auto-load items
+    function observeGridMutations() {
+        const container = document.querySelector('body');
+        if (!container) return;
+        const observer = new MutationObserver(() => {
+            // re-load items when changes detected
+            const prevHash = getStoredItemsHash();
+            const currentItems = Array.from(document.querySelectorAll('.petCare-itemgrid-item'));
+            const newHash = makeItemsHash(currentItems);
+            if (newHash !== prevHash) {
+                loadItems();
+                updateIndexDisplay();
+                storeItemsHash(newHash);
+            }
+        });
+        observer.observe(container, { childList: true, subtree: true });
+    }
+
+    // ---- Init ----
+    function init() {
+        createPanel();
+        loadItems();
+        updateIndexDisplay();
+        observeGridMutations();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
