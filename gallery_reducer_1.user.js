@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         Auto-check & cap stock to 1
-// @namespace    http://tampermonkey.net/
-// @version      1.2
+// @namespace    neopets
+// @author       laurore
+// @version      1
 // @description  For each gallery/remove item: if stock > 1, set stock to 1 and check its remove checkbox. Scrolls to bottom when done. Observes dynamic changes too.
-// @match        *://*/*
+// @match        *://*.neopets.com/gallery/*
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==
