@@ -5,6 +5,7 @@
 // @description  Adds Next / Previous buttons above the stamp album table to navigate page_id 0..48 while preserving URL params (owner, type, etc.).
 // @author       laurore
 // @match        https://www.neopets.com/stamps.phtml*
+// @update       https://github.com/l0aurore/neopet_scripts/blob/main/stamp_nav.user.js
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
