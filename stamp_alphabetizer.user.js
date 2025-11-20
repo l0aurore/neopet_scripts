@@ -4,6 +4,7 @@
 // @version      1.2
 // @description  Hide the default album-links paragraph on Neopets stamps pages and show albums sorted A→Z.  Adds toggle to reveal original list.
 // @match        https://www.neopets.com/stamps.phtml*
+// @update       github.com/l0aurore/neopet_scripts/edit/main/stamp_alphabetizer.user.js
 // @author       laurore
 // @grant        none
 // ==/UserScript==
