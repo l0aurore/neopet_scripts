@@ -10,7 +10,6 @@
 // @update       https://github.com/l0aurore/neopet_scripts/blob/main/bottle_faerie.user.js
 // @grant        GM_setValue
 // @grant        GM_getValue
-// @grant        GM_addStyle
 
 // ==/UserScript==
 
@@ -203,7 +202,7 @@
 
     // Floating Start/Stop and Open Menu (so it's always visible)
     const startBtn = document.createElement('button');
-    startBtn.textContent = 'Start Faerie Run (B)';
+    startBtn.textContent = 'Use Faerie (B)';
     Object.assign(startBtn.style, {
       position: "fixed", top: "80px", right: "20px", padding: "8px 14px",
       zIndex: 9999, fontSize: "14px", background: "#7fd282", border: "2px solid #444",
@@ -212,7 +211,7 @@
     document.body.appendChild(startBtn);
 
     const stopBtn = document.createElement('button');
-    stopBtn.textContent = 'Stop Run (Esc)';
+    stopBtn.textContent = 'Cancel (Esc)';
     Object.assign(stopBtn.style, {
       position: "fixed", top: "120px", right: "20px", padding: "8px 14px",
       zIndex: 9999, fontSize: "14px", background: "#ff7a7a", border: "2px solid #444",
