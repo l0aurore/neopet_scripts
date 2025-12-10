@@ -2,9 +2,9 @@
 // @name         Neopets Stamp Album - Next/Previous Navigation
 // @namespace    https://www.neopets.com/
 // @version      1.1
-// @description  Adds Next / Previous buttons above the stamp album table to navigate page_id 0..48 while preserving URL params (owner, type, etc.).
+// @description  Adds Next / Previous buttons above the stamp album table to navigate page_id 0..49 while preserving URL params (owner, type, etc.).
 // @author       laurore
-// @match        https://www.neopets.com/stamps.phtml*
+// @match        https://www.neopets.com/stamps.phtml?type=album&page_id*
 // @update       https://github.com/l0aurore/neopet_scripts/blob/main/stamp_nav.user.js
 // @grant        none
 // @run-at       document-idle
@@ -15,7 +15,7 @@
 
   // configuration
   const MIN_PAGE = 0;
-  const MAX_PAGE = 48;
+  const MAX_PAGE = 49;
 
   // helper: parse current page_id from URL (default MIN_PAGE)
   function getCurrentPage() {
@@ -43,7 +43,7 @@
     // Prefer table with width=450 and containing at least one image with 'stamp' in src
     const tables = Array.from(document.querySelectorAll('table[width="450"], table[width="450"][height="450"]'));
     for (const t of tables) {
-      if (t.querySelector('img[src*="stamp"], img[src*="/items/sta"], img[src*="/items/stamp"]')) return t;
+      if (t.querySelector('img[src*="stamp"], img[scr*="items/spo_coconut"], img[src*="/items/stamp"], img[scr*="items/coin"], img[scr*="items/coi"] ')) return t;
     }
     // fallback: find any table that contains a stamp img
     const anyTable = Array.from(document.querySelectorAll('table')).find(t => t.querySelector('img[src*="stamp"], img[src*="/items/sta"], img[src*="/items/stamp"]'));
