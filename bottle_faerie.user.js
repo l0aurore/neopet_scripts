@@ -7,9 +7,9 @@
 // @match        https://www.neopets.com/use-faerie-menu*
 // @match        https://www.neopets.com/useobject.phtml*
 // @author       laurore
-// @update       https://github.com/l0aurore/neopet_scripts/blob/main/bottle_faerie.user.js
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @grant        GM_addStyle
 
 // ==/UserScript==
 
@@ -66,96 +66,121 @@
   const waitFor = waitForSelector;
 
   // --- Menu page implementation (opens a blank tab UI) ---
-  async function openMenuTab() {
-    const w = window.open('', '_blank');
-    if (!w) {
-      alert('Popup blocked. Allow popups for this site or open the menu manually.');
-      return;
-    }
-
-    const savedBottle = await GM_getValue('faerie_selected', '') || '';
-    const savedPet = await GM_getValue('faerie_pet', '') || '';
-
-    const doc = w.document;
-    doc.title = 'Faerie Menu';
-    const style = `
-      body { font-family: Arial, Helvetica, sans-serif; padding: 12px; }
-      h1 { font-size: 18px; margin-bottom: 8px; }
-      .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-      .icon {opacity: 1; transition: opacity 0.15s ease-out;}
-
-      .icon.selected { opacity: 0.5; filter: grayscale(100%); }
-
-      .label { font-size:13px; margin-left:6px; }
-      .controls { margin-top:12px; }
-      .save { margin-top:10px; padding:6px 10px; cursor:pointer; border-radius:6px; border:0; background:#10b981; color:white; font-weight:600; }
-      .note { margin-top:8px; color:#555; font-size:12px; }
-      input[type=text] { padding:6px; font-size:14px; width:220px; border-radius:6px; border:1px solid #bbb; }
-    `;
-    doc.head.innerHTML = `<meta charset="utf-8"><style>${style}</style>`;
-
-    const container = doc.createElement('div');
-    container.innerHTML = `<h1>Pick a Bottled Faerie & Pet</h1>
+ async function openMenuTab() {
+  const html = `
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Faerie Menu</title>
+      <style>
+        body { font-family: Arial, Helvetica, sans-serif; padding: 12px; }
+        h1 { font-size: 18px; margin-bottom: 8px; }
+        .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .icon {opacity: 1; transition: opacity 0.15s ease-out;}
+        .icon.selected { opacity: 0.5; filter: grayscale(100%); }
+        .label { font-size:13px; margin-left:6px; }
+        .controls { margin-top:12px; }
+        .save { margin-top:10px; padding:6px 10px; cursor:pointer;
+                border-radius:6px; border:0; background:#10b981;
+                color:white; font-weight:600; }
+        .note { margin-top:8px; color:#555; font-size:12px; }
+        input[type=text] { padding:6px; font-size:14px; width:220px;
+                           border-radius:6px; border:1px solid #bbb; }
+      </style>
+    </head>
+    <body>
+      <h1>Pick a Bottled Faerie & Pet</h1>
       <div class="row" id="iconsRow"></div>
       <div class="controls">
         <div style="margin-top:10px">
           <label class="label">Pet name: </label>
-          <input id="petInput" type="text" placeholder="e.g. Rustycat59" value="${savedPet || ''}" />
+          <input id="petInput" type="text" placeholder="e.g. Rustycat59" />
         </div>
         <button id="saveBtn" class="save">Save Settings</button>
-        <div class="note">Settings are saved across tabs. Close this tab after saving.</div>
+        <div class="note">Settings are saved automatically. You can save repeatedly without closing.</div>
       </div>
       <div id="status" style="margin-top:10px;color:green;"></div>
-    `;
-    doc.body.appendChild(container);
+    </body>
+    </html>
+  `;
 
-    const iconsRow = doc.getElementById('iconsRow');
+  // Create a unique URL every time → no reuse
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
 
-    BOTTLES.forEach((b) => {
-        const img = doc.createElement('img');
-        img.src = BOTTLE_IMAGES[b] || "";
-        img.title = b;
-        img.alt = b;
-        img.className = 'icon' + ((savedBottle === b) ? ' selected' : '');
-        img.dataset.value = b;
+  const w = window.open(url, "_blank");
+  if (!w) {
+    alert("Popup blocked. Enable popups for this site.");
+    return;
+  }
 
-        // fixed display
-        img.style.width = '40px';
-        img.style.height = '40px';
-        img.style.objectFit = 'contain';
-        img.style.cursor = 'pointer';
-        img.style.position = 'relative';
+  // Give the new window time to parse
+  w.addEventListener("load", async () => {
+    const doc = w.document;
 
-        img.addEventListener('click', () => {
-            [...iconsRow.querySelectorAll('.icon')].forEach(i => i.classList.remove('selected'));
-            img.classList.add('selected');
-            doc.getElementById('status').textContent = `Selected: ${b}`;
-        });
+    const savedBottle = await GM_getValue("faerie_selected", "") || "";
+    const savedPet = await GM_getValue("faerie_pet", "") || "";
 
-        iconsRow.appendChild(img);
+    // Restore pet
+    doc.getElementById("petInput").value = savedPet;
+
+    const iconsRow = doc.getElementById("iconsRow");
+
+    // Add bottle icons
+    BOTTLES.forEach(b => {
+      const img = doc.createElement("img");
+      img.src = BOTTLE_IMAGES[b] || "";
+      img.title = b;
+      img.alt = b;
+      img.className = "icon" + (savedBottle === b ? " selected" : "");
+      img.dataset.value = b;
+      Object.assign(img.style, {
+        width: "40px",
+        height: "40px",
+        objectFit: "contain",
+        cursor: "pointer"
+      });
+
+      img.addEventListener("click", () => {
+        [...iconsRow.querySelectorAll(".icon")].forEach(i =>
+          i.classList.remove("selected")
+        );
+        img.classList.add("selected");
+        doc.getElementById("status").textContent = `Selected: ${b}`;
+      });
+
+      iconsRow.appendChild(img);
     });
 
+    // Save settings
+    doc.getElementById("saveBtn").addEventListener("click", async () => {
+      const selected = iconsRow.querySelector(".icon.selected");
+      const bottleVal = selected ? selected.dataset.value : "";
+      const pet = doc.getElementById("petInput").value.trim();
 
-    doc.getElementById('saveBtn').addEventListener('click', async () => {
-      const selectedImg = iconsRow.querySelector('.icon.selected');
-      const selected = selectedImg ? selectedImg.dataset.value : '';
-      const pet = doc.getElementById('petInput').value.trim();
-      if (!selected) {
-        doc.getElementById('status').style.color = 'red';
-        doc.getElementById('status').textContent = 'Please select a bottled faerie.';
+      if (!bottleVal) {
+        doc.getElementById("status").textContent =
+          "Please select a bottled faerie.";
+        doc.getElementById("status").style.color = "red";
         return;
       }
       if (!pet) {
-        doc.getElementById('status').style.color = 'red';
-        doc.getElementById('status').textContent = 'Please enter a pet name.';
+        doc.getElementById("status").textContent =
+          "Please enter a pet name.";
+        doc.getElementById("status").style.color = "red";
         return;
       }
-      await GM_setValue('faerie_selected', selected);
-      await GM_setValue('faerie_pet', pet);
-      doc.getElementById('status').style.color = 'green';
-      doc.getElementById('status').textContent = `Saved: ${selected} → ${pet}`;
+
+      await GM_setValue("faerie_selected", bottleVal);
+      await GM_setValue("faerie_pet", pet);
+
+      doc.getElementById("status").textContent =
+        `Saved: ${bottleVal} → ${pet}`;
+      doc.getElementById("status").style.color = "green";
     });
-  }
+  });
+}
+
 
   // --- Inventory page UI additions & use flow ---
   async function addInventoryButtonsIfNeeded() {
@@ -202,7 +227,7 @@
 
     // Floating Start/Stop and Open Menu (so it's always visible)
     const startBtn = document.createElement('button');
-    startBtn.textContent = 'Use Faerie (B)';
+    startBtn.textContent = 'Use Faerie(B)';
     Object.assign(startBtn.style, {
       position: "fixed", top: "80px", right: "20px", padding: "8px 14px",
       zIndex: 9999, fontSize: "14px", background: "#7fd282", border: "2px solid #444",
