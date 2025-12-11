@@ -7,6 +7,7 @@
 // @match        https://www.neopets.com/use-faerie-menu*
 // @match        https://www.neopets.com/useobject.phtml*
 // @author       laurore
+// @update       https://github.com/l0aurore/neopet_scripts/edit/main/bottle_faerie.user.js
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_addStyle
