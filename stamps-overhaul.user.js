@@ -3,8 +3,8 @@
 // @namespace    neopets
 // @version      2.0
 // @description  Tracks album completion, hides completed albums, alphabetizes incomplete ones, and navigation skips completed pages.
-// @author.      laurore
-// @update.      raw
+// @author      laurore
+// @update      https://github.com/l0aurore/neopet_scripts/raw/refs/heads/main/stamps-overhaul.user.js
 // @match        *://www.neopets.com/stamps.phtml*
 // @grant        GM_setValue
 // @grant        GM_getValue
